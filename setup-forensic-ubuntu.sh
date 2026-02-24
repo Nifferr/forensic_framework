@@ -1,43 +1,63 @@
-#!/bin/sh
+#!/usr/bin/env bash
+INSTALL_REGRIPPER=${INSTALL_REGRIPPER:-0}
+INSTALL_LEAPP=${INSTALL_LEAPP:-1}
+INSTALL_CLOUD_TOOLS=${INSTALL_CLOUD_TOOLS:-1}
 ###################################################
-# Install all manner of forensics tools 
-# on Ubuntu 
+# Install all manner of forensics tools
+# on Ubuntu
 ###################################################
 
+
+DISTRO_ID="$(. /etc/os-release 2>/dev/null; echo ${ID:-unknown})"
+if [ "$DISTRO_ID" = "kali" ]; then
+  echo "[INFO] Kali Linux detected: enabling Kali-friendly package flow"
+fi
+
 ###################################################
-# Disk Image tools 
+# Disk Image tools
 ###################################################
 sudo apt-get -y install xmount
 sudo apt-get -y install virtualbox
 sudo apt-get -y install dc3dd
 sudo apt-get -y install lsscsi
 sudo apt-get -y install afflib-tools
-sudo apt-get -y install libfuse-dev 
+sudo apt-get -y install libfuse-dev
 sudo apt-get -y install fuse-utils
 sudo echo "user_allow_other" >> /etc/fuse.conf
 sudo chmod 644 /etc/fuse.conf
 
 ###################################################
-# Virtualization 
+# Virtualization
 ###################################################
-curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo apt-key add -
-sudo apt-add-repository "deb [arch=amd64] https://apt.releases.hashicorp.com $(lsb_release -cs) main"
-sudo apt-get update && sudo apt-get install vagrant
+curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
+echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg arch=amd64] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list >/dev/null
+sudo apt-get update && sudo apt-get -y install vagrant
 sudo apt-get -y install virtualbox-fuse
 
 ###################################################
-# Install log2timeline
+# Install timeline tooling (Plaso/log2timeline)
 ###################################################
-wget https://log2timeline.googlecode.com/files/log2timeline_0.65.tgz
-#OR
-sudo nano -w /etc/apt/sources.list
-deb http://log2timeline.net/pub/ lucid main
-wget -q http://log2timeline.net/gpg.asc -O- | sudo apt-key add -
 sudo apt-get update
-sudo apt-get install log2timeline-perl
+sudo apt-get -y install plaso-tools || sudo apt-get -y install log2timeline
+if [ "$INSTALL_CLOUD_TOOLS" = "1" ]; then
+  sudo apt-get -y install rclone
+  sudo npm install -g @pnp/cli-microsoft365 || true
+  sudo apt-get -y install python3-pip
+  pip3 install --user gam7 || true
+fi
 
 ###################################################
-# Vinetto is a forensics tool to examine Thumbs.db 
+# Memory / timeline / mobile support
+###################################################
+sudo apt-get -y install avml volatility3 chrony
+sudo apt-get -y install libimobiledevice-utils ifuse adb
+if [ "$INSTALL_LEAPP" = "1" ]; then
+  sudo git clone https://github.com/abrignoni/ALEAPP /opt/ALEAPP || true
+  sudo git clone https://github.com/abrignoni/iLEAPP /opt/iLEAPP || true
+fi
+
+###################################################
+# Vinetto is a forensics tool to examine Thumbs.db
 # files
 ###################################################
 sudo apt-get install vinetto
@@ -50,7 +70,7 @@ sudo apt-get install pasco
 ###################################################
 #  Perl script to parse a shortcut (LNK) file and retrieve data
 ###################################################
-svn checkout http://jaygeeplayground.googlecode.com/svn/trunk/ lslink
+sudo apt-get -y install liblnk-utils || true
 
 ###################################################
 #  Wireshark dependencies
@@ -58,32 +78,27 @@ svn checkout http://jaygeeplayground.googlecode.com/svn/trunk/ lslink
 sudo apt install qttools5-dev qttools5-dev-tools libqt5svg5-dev qtmultimedia5-dev build-essential automake autoconf libgtk2.0-dev libglib2.0-dev flex bison libpcap-dev libgcrypt20-dev cmake -y
 
 ###################################################
-# Regripper 
+# Regripper
 ###################################################
-perl -MCPAN -e 'install Parse::Win32Registry'
-sudo mkdir -p /opt/regripper
-cd /opt/regripper
-sudo wget https://regripper.googlecode.com/files/rrv2.5.zip
-sudo unzip rrv2.5.zip
+if [ "$INSTALL_REGRIPPER" = "1" ]; then
+  perl -MCPAN -e 'install Parse::Win32Registry'
+  sudo mkdir -p /opt/regripper
+  cd /opt/regripper
+  sudo git clone https://github.com/keydet89/RegRipper3.0.git . || true
 
-sudo mkdir -p /opt/regripper/plugins
-cd /opt/regripper/plugins
-sudo wget https://regripperplugins.googlecode.com/files/regripperplugins_20130218.zip
-sudo unzip regripperplugins_20130218.zip
-cd ..
-	
-# Shell script which makes rip.pl run on Linux (riplin.pl)
-# Fix end of line
-sudo cat rip.pl | sed 's|\r$||g' > /tmp/riplin0.pl
-# Now fix the first line so linux perl executed
-sudo cat /tmp/riplin0.pl | sed "s| c:\\\\perl\\\\bin\\\\perl.exe|`which perl`|" > /tmp/riplin1.pl
-# Fix the backslash before the plugins directory
-sudo cat /tmp/riplin1.pl | sed 's|plugins\\\\|plugins/|' > riplin.pl
-# Make executable
-sudo chmod +x riplin.pl
+  # Shell script which makes rip.pl run on Linux (riplin.pl)
+  # Fix end of line
+  sudo cat rip.pl | sed 's|\r$||g' > /tmp/riplin0.pl
+  # Now fix the first line so linux perl executed
+  sudo cat /tmp/riplin0.pl | sed "s| c:\\\\perl\\\\bin\\\\perl.exe|`which perl`|" > /tmp/riplin1.pl
+  # Fix the backslash before the plugins directory
+  sudo cat /tmp/riplin1.pl | sed 's|plugins\\\\|plugins/|' > riplin.pl
+  # Make executable
+  sudo chmod +x riplin.pl
+fi
 
 ###################################################
-# Drive tools 
+# Drive tools
 ###################################################
 apt-get install hdparm -y
 apt-get install smartmontools -y
@@ -91,10 +106,11 @@ apt-get install lshw -y
 apt install inxi -y
 apt install sdparm -y
 apt install hwinfo -y
+apt install nvme-cli -y
 
 apt-get update && apt-get install -y wget gnupg \
-    && wget -q -O - https://download.bell-sw.com/pki/GPG-KEY-bellsoft | apt-key add - \
-    && echo "deb [arch=amd64] https://apt.bell-sw.com/ stable main" | tee /etc/apt/sources.list.d/bellsoft.list \
+    && wget -q -O - https://download.bell-sw.com/pki/GPG-KEY-bellsoft | gpg --dearmor -o /usr/share/keyrings/bellsoft.gpg \
+    && echo "deb [signed-by=/usr/share/keyrings/bellsoft.gpg arch=amd64] https://apt.bell-sw.com/ stable main" | tee /etc/apt/sources.list.d/bellsoft.list \
     && apt-get update && apt-get install -y \
       git \
       build-essential \
@@ -119,11 +135,11 @@ apt-get update && apt-get install -y wget gnupg \
       librsvg2-dev \
       libopenexr-dev \
       vim \
-      less\      
+      less\
       unzip \
       libparse-win32registry-perl \
       tesseract-ocr tesseract-ocr-por tesseract-ocr-osd \
-      graphviz \  
+      graphviz \
       bellsoft-java8-full \
       mplayer \
       && apt-get download ant && ls *.deb | awk '{system("dpkg-deb -x "$1" /")}' \
@@ -131,7 +147,7 @@ apt-get update && apt-get install -y wget gnupg \
     && cd /opt \
     && git clone https://github.com/lfcnassif/sleuthkit-APFS \
     && cd /opt/sleuthkit-APFS/ \
-    && ./bootstrap \ 
+    && ./bootstrap \
     && ./configure --prefix=/usr/ \
     && make && make install \
     && rm -rf /opt/sleuthkit-APFS/ \
@@ -141,15 +157,15 @@ apt-get update && apt-get install -y wget gnupg \
     && git clone https://github.com/libyal/libagdb.git \
     && cd /opt/libagdb \
     && ./synclibs.sh \
-    && ./autogen.sh \    
-    && ./configure --prefix=/usr \ 
+    && ./autogen.sh \
+    && ./configure --prefix=/usr \
     && make all install \
     && rm -rf /opt/libagdb \
     && echo "#####################################" \
     && echo "install libevtx" \
     && cd /opt \
     && git clone --branch="20210525" https://github.com/libyal/libevtx \
-    && cd /opt/libevtx \ 
+    && cd /opt/libevtx \
     && ./synclibs.sh \
     && ./autogen.sh \
     && ./configure --prefix=/usr \
@@ -192,7 +208,7 @@ apt-get update && apt-get install -y wget gnupg \
     && cd /opt/libpff \
     && ./synclibs.sh \
     && ./autogen.sh \
-    && ./configure --prefix=/usr \ 
+    && ./configure --prefix=/usr \
     && make all install \
     && rm -rf /opt/libpff \
     && echo "#####################################" \
@@ -234,7 +250,7 @@ apt-get update && apt-get install -y wget gnupg \
     && echo "Configuring Local config with our default values" \
     && echo "#####################################" \
     && echo "If you need to change the IPED LocalConfig, use the environment variables available on /entrypoint.sh" \
-    && echo "#####################################" \    
+    && echo "#####################################" \
     && sed -i -e "s/locale =.*/locale = pt-BR/" /root/IPED/iped/LocalConfig.txt \
     && sed -i -e "s/indexTemp =.*/indexTemp = \/mnt\/ipedtmp/" /root/IPED/iped/LocalConfig.txt \
     && sed -i -e "s/indexTempOnSSD =.*/indexTempOnSSD = true/" /root/IPED/iped/LocalConfig.txt \
@@ -265,9 +281,9 @@ apt-get update && apt-get install -y wget gnupg \
     && echo "#####################################" \
     && echo "PedoRobust: enable excludeKffIgnorable, externalParsers and robustImageReading" \
     && echo "For child abuse cases where processing errors are occurring" \
-    && echo "#####################################" \    
+    && echo "#####################################" \
     && cp -r /root/IPED/iped/profiles/pt-BR/pedo /root/IPED/iped/profiles/pt-BR/pedorobust \
     && cp -r /root/IPED/iped/profiles/en/pedo /root/IPED/iped/profiles/en/pedorobust \
     && sed -i -e "s/excludeKffIgnorable =.*/excludeKffIgnorable = true/" /root/IPED/iped/profiles/*/pedorobust/IPEDConfig.txt \
     && sed -i -e "s/robustImageReading =.*/robustImageReading = true/" /root/IPED/iped/profiles/*/pedorobust/conf/AdvancedConfig.txt \
-    && sed -i -e "s/enableExternalParsing =.*/enableExternalParsing = true/" /root/IPED/iped/profiles/*/pedorobust/conf/AdvancedConfig.txt 
+    && sed -i -e "s/enableExternalParsing =.*/enableExternalParsing = true/" /root/IPED/iped/profiles/*/pedorobust/conf/AdvancedConfig.txt
