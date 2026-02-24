@@ -3,7 +3,7 @@
 clear
 # Script to image devices with linux Distro
 # v2022.01.01
-# Updated January 2022
+# Updated January 2026
 # GPL 3.0
 #
 # Script developed to assist in Forensic collection and reports
