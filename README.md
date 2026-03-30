@@ -1,6 +1,4 @@
-Aqui está o README em **RAW (Markdown puro, pronto para salvar como `README.md`)**:
-
-```markdown
+```
 # 🧪 Forensic Framework – Linux Acquisition
 
 Framework em Bash para **aquisição forense em ambientes Linux**, com foco em **integridade, rastreabilidade e cadeia de custódia**.
@@ -203,5 +201,4 @@ Este framework foi projetado considerando boas práticas alinhadas a:
 
 Consulte o arquivo `LICENSE`.
 
-```
 ```
