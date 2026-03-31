@@ -1,4 +1,3 @@
-```
 # 🧪 Forensic Framework – Linux Acquisition
 
 Framework em Bash para **aquisição forense em ambientes Linux**, com foco em **integridade, rastreabilidade e cadeia de custódia**.
@@ -20,7 +19,6 @@ Este projeto fornece scripts para aquisição de evidências digitais com:
 ## 🗂️ Estrutura do Projeto
 
 ```
-
 .
 ├── acquire_linux.sh        # Script principal
 ├── acquire_linux_tui.sh    # Interface interativa (TUI)
@@ -28,7 +26,6 @@ Este projeto fornece scripts para aquisição de evidências digitais com:
 └── README.md
 
 ````
-
 ---
 
 ## ⚙️ Funcionalidades
