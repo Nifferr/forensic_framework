@@ -77,7 +77,7 @@ Este projeto fornece scripts para aquisição de evidências digitais com:
 
 ```bash
 ./acquire_linux.sh
-````
+```
 
 ### Opções disponíveis
 
