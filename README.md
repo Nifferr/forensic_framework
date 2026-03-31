@@ -197,5 +197,3 @@ Este framework foi projetado considerando boas práticas alinhadas a:
 ## 📜 Licença
 
 Consulte o arquivo `LICENSE`.
-
-```
